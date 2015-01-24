@@ -30,6 +30,6 @@
 
 obj/
 server
-test
+test*
 \#*
 *~
