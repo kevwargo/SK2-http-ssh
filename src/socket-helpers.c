@@ -1,12 +1,9 @@
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "address.h"
+#include "socket-helpers.h"
 
-int setsockaddr(struct sockaddr_in *sockaddr, char *ipaddr, char *strport)
+int parsesockaddr(struct sockaddr_in *sockaddr, char *ipaddr, char *strport)
 {
     if (sockaddr == NULL)
         return ADDRERR_SOCKADDR_NULL;
@@ -28,7 +25,7 @@ int setsockaddr(struct sockaddr_in *sockaddr, char *ipaddr, char *strport)
     return 0;
 }
 
-int printerror(int errcode)
+int printaddrerr(int errcode)
 {
     if (errcode == 0)
         return 0;
@@ -60,3 +57,18 @@ void exitonerror(int errcode)
         return;
     exit(errcode);
 }
+
+int sendall(int socket, void *buffer, size_t length)
+{
+    char *ptr = (char*) buffer;
+    while (length > 0)
+    {
+        int chunksize = send(socket, ptr, length, 0);
+        if (chunksize < 0)
+            return chunksize;
+        ptr += chunksize;
+        length -= chunksize;
+    }
+    return length;
+}
+
