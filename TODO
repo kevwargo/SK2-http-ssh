@@ -1,0 +1,4 @@
+1. file sending (maybe chunked)
+2. html form to provide username and pass
+3. libssh to connect and retrieve files
+4. proxy, if libssh fails

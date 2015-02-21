@@ -9,6 +9,8 @@ typedef struct Client
     int sockfd;
     pthread_t thread;
     struct sockaddr_in address;
+    char *rootdir;
+    char *workingSubdir;
     struct Client *next;
 } Client;
 

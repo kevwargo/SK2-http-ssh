@@ -4,6 +4,6 @@
 #include "clientlist.h"
 
 
-extern int HTTPServerMainLoop(Client *client, char *rootdir);
+extern int httpServerMainLoop(Client *client);
 
 #endif

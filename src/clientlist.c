@@ -10,11 +10,12 @@ Client *addClient(Client **clptr, int sockfd)
     Client **cpp;
     for (cpp = clptr; *cpp; cpp = &((*cpp)->next))
         if ((*cpp)->sockfd == sockfd)
-            return NULL;
+            return *cpp;
     *cpp = (Client *)malloc(sizeof(Client));
     (*cpp)->sockfd = sockfd;
+    (*cpp)->rootdir = NULL;
+    (*cpp)->workingSubdir = NULL;
     (*cpp)->next = NULL;
-    printf("new cl %llu\n", (unsigned long long)*cpp);
     return *cpp;
 }
 
@@ -27,6 +28,8 @@ void removeClient(Client **clptr, int sockfd)
         {
             /* printf("removing %d\n", sockfd); */
             Client *next = (*cpp)->next;
+            free((*cpp)->rootdir);
+            free((*cpp)->workingSubdir);
             free(*cpp);
             *cpp = next;
             return;

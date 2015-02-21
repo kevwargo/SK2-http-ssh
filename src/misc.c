@@ -3,6 +3,8 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <limits.h>
 #include <time.h>
 #include <string.h>
 #include "clientlist.h"
@@ -24,4 +26,13 @@ char *curdate()
     for (int pos = strlen(date) - 1; date[pos] == '\n'; pos--)
         date[pos] = '\0';
     return date;
+}
+
+char *joinpath(char *dir, char *base)
+{
+    char *fullname = (char *)malloc(strlen(dir) + strlen(base) + 2);
+    sprintf(fullname, "%s/%s", dir, base);
+    char *result = realpath(fullname, NULL);
+    free(fullname);
+    return result;
 }

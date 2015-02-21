@@ -30,7 +30,7 @@ void *handleClient(void *arg)
 {
     Client *client = (Client *)arg;
     logmsg(client, stdout, "New thread created\n");
-    switch (HTTPServerMainLoop(client, RootDir))
+    switch (httpServerMainLoop(client))
     {
         case 0:
             logmsg(client, stdout, "Successfully disconnected.\n");
@@ -46,9 +46,10 @@ void *handleClient(void *arg)
     }
     shutdown(client->sockfd, SHUT_RDWR);
     close(client->sockfd);
+    removeClient(&ClientList, client->sockfd);
 }
 
-int acceptClient(int servsock, Client **clptr, void *(*start_routine) (void *), Client **new)
+int acceptClient(int servsock, Client **clptr, void *(*start_routine) (void *), Client **new, char *rootdir)
 {
     struct sockaddr_in caddr;
     int sa_size = sizeof(struct sockaddr_in);
@@ -66,6 +67,8 @@ int acceptClient(int servsock, Client **clptr, void *(*start_routine) (void *), 
     }
     else
         *new = client;
+    client->rootdir = strdup(rootdir);
+    client->workingSubdir = strdup("/");
     return status;
 }
 
@@ -77,8 +80,7 @@ void cleanup()
         shutdown(client->sockfd, SHUT_RDWR);
         close(client->sockfd);
         pthread_join(client->thread, NULL);
-        printf("Thread for the client %s:%d terminated\n",
-               inet_ntoa(client->address.sin_addr), client->address.sin_port);
+        logmsg(client, stdout, "Thread terminated\n");
     }
     clearClientList(&ClientList);
     close(ServerSocket);
@@ -89,7 +91,7 @@ void signalHandler(int signum)
 {
     psignal(signum, "Caught signal");
     cleanup();
-    exit(signum == SIGINT ? 0 : 1);
+    exit(signum == SIGINT ? 0 : signum);
 }
 
 int main(int argc, char **argv)
@@ -115,8 +117,8 @@ int main(int argc, char **argv)
         close(ServerSocket);
         return 1;
     }
-    int errcode = parsesockaddr(&serverSocketAddress, argv[1], argv[2]);
-    exitonerror(printaddrerr(errcode));
+    int errcode = parseSocketAddress(&serverSocketAddress, argv[1], argv[2]);
+    exitOnError(printAddressError(errcode));
     if (bind(ServerSocket,
              (struct sockaddr *)&serverSocketAddress,
              sizeof(serverSocketAddress)) < 0)
@@ -143,7 +145,7 @@ int main(int argc, char **argv)
     while (1)
     {
         Client *new;
-        int status = acceptClient(ServerSocket, &ClientList, handleClient, &new);
+        int status = acceptClient(ServerSocket, &ClientList, handleClient, &new, RootDir);
         if (status < 0)
             perror("Cannot accept an incoming connection");
         else if (status > 0)
