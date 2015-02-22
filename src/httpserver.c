@@ -10,10 +10,10 @@
 #include "misc.h"
 #include "ssh.h"
 
-static int getLocalResource(Client *client, HTTPRequest *request, char *localresource)
+static long long getLocalResource(Client *client, HTTPRequest *request, char *localresource)
 {
-    int result;
-    char *path = joinpath(client->rootdir, localresource);
+    long long result;
+    char *path = joinpath(client->rootdir, localresource, 1);
     if (! path)
     {
         printf("%s not found\n", request->resource);
@@ -37,13 +37,14 @@ static int getLocalResource(Client *client, HTTPRequest *request, char *localres
                     sprintf(client->workingSubdir, "/");
                 else
                     sprintf(client->workingSubdir, "%s", path + len);
-                result = sendHTTPFileList(client, request->method == HTTP_GET_METHOD);
+                result = sendHTTPLocalFileList(client,
+                                               request->method == HTTP_GET_METHOD);
             }
             else if (S_ISREG(filestat.st_mode))
             {
                 printf("sending file %s\n", path);
                 result = sendHTTPFile(client, path, request->method == HTTP_GET_METHOD);
-                printf("sent %d bytes\n", result);
+                printf("sent %lld bytes\n", result);
                 if (result < -1) // some error with file
                 {
                     printf("failed to send %s\n", path);
@@ -82,16 +83,21 @@ static int getLocalResource(Client *client, HTTPRequest *request, char *localres
     return result;
 }
 
-static int handleGetHead(Client *client, HTTPRequest *request)
+static long long handleGetHead(Client *client, HTTPRequest *request)
 {
     char *resource = request->resource;
     if (strncmp(resource, "/local/", 7) == 0)
-        return getLocalResource(client, request, resource + 7);
+        return getLocalResource(client, request, resource + 6);
     else if (strncmp(resource, "/ssh/", 5) == 0)
-        return getSSHResource(client, request, resource + 5);
+    {
+        logmsg(client, stdout, "ssh get\n");
+        return getSSHResource(client, request, resource + 4);
+    }
     else if (strcmp(resource, "/") == 0)
     {
-        char *path = joinpath(client->rootdir, "index.html");
+        char *path = joinpath(client->rootdir, "index.html", 1);
+        if (! path)
+            return sendHTTPNotFound(client, "index.html");
         int result = sendHTTPFile(client, path, request->method == HTTP_GET_METHOD);
         free(path);
         return result;
@@ -100,7 +106,7 @@ static int handleGetHead(Client *client, HTTPRequest *request)
         return sendHTTPNotFound(client, resource);
 }
 
-static int handlePost(Client *client, HTTPRequest *request)
+static long long handlePost(Client *client, HTTPRequest *request)
 {
     char *content_type = getHTTPHeaderValue(&request->message, "content-type");
     if (! content_type)
@@ -203,7 +209,7 @@ static int handlePost(Client *client, HTTPRequest *request)
         return sendHTTPBadRequest(client, "some error");
 }
 
-int HTTPHandleRequest(HTTPRequest *request, Client *client)
+long long HTTPHandleRequest(HTTPRequest *request, Client *client)
 {
     logmsg(client, stdout, "target: %s\n", request->resource);
     logmsg(client, stdout, "HTTP version: %d.%d\n", request->message.majorHTTPVersion,
@@ -294,7 +300,7 @@ int httpServerMainLoop(Client *client)
                     logmsg(client, stdout, "Received payload of size %d\n", size);
                     break;
             }
-            int res = HTTPHandleRequest(request, client);
+            long long res = HTTPHandleRequest(request, client);
             if (res < 0)
             {
                 free(requestbuf);

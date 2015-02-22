@@ -28,15 +28,21 @@ void logmsg(Client *client, FILE *stream, char *fmt, ...)
     va_end(args);
 }
 
-char *joinpath(char *dir, char *base)
+char *joinpath(char *dir, char *base, int check)
 {
     int dirlen = strlen(dir);
     int baselen = strlen(base);
     char *fullname = (char *)malloc(dirlen + baselen + 2);
     sprintf(fullname, "%s/%s", dir, base);
-    char *result = realpath(fullname, NULL);
-    free(fullname);
-    return result;
+    char *result;
+    if (check)
+    {
+        char *result = realpath(fullname, NULL);
+        free(fullname);
+        return result;
+    }
+    else
+        return fullname;
 }
 
 char *decodeURL(char *url)

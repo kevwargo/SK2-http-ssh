@@ -17,7 +17,7 @@
 extern int parseSocketAddress(struct sockaddr_in *sockaddr, char *ipaddr, char *strport);
 extern int printAddressError(int errcode);
 extern void exitOnError(int errcode);
-extern int sendall(int socket, void *buffer, size_t length);
+extern long long sendall(int socket, void *buffer, size_t length);
 extern int recvUpToPattern(int sockfd, char **bufptr, int *bufsizeptr,
                            char **endptr, int patternCount, ...);
 extern int recvall(int socket, char *buffer, int length);

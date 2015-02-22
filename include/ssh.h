@@ -6,6 +6,6 @@
 
 extern int ssh_test(int argc, char **argv);
 extern int sshConnect(Client *client, char *host, char *username, char *password);
-extern int getSSHResource(Client *client, HTTPRequest *request, char *sshrequest);
+extern int getSSHResource(Client *client, HTTPRequest *request, char *sshresource);
 
 #endif

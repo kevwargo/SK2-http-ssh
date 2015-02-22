@@ -4,6 +4,8 @@
 #include <pthread.h>
 #include <netinet/in.h>
 #include <libssh2.h>
+#include <libssh2_sftp.h>
+
 
 typedef struct Client
 {
@@ -12,7 +14,9 @@ typedef struct Client
     struct sockaddr_in address;
     char *rootdir;
     char *workingSubdir;
+    char *ssh_host;
     LIBSSH2_SESSION *ssh_session;
+    LIBSSH2_SFTP *sftp_session;
     struct Client *next;
 } Client;
 

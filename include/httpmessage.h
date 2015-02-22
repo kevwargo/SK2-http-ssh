@@ -11,14 +11,14 @@ typedef struct {
     int minorHTTPVersion;
     int headerCount;
     HTTPHeaderField *headers;
-    int datalen;
+    long long datalen;
     char *data;
 } HTTPMessage;
 
 extern void destroyMessage(HTTPMessage *message);
 extern char *getHTTPHeaderValue(HTTPMessage *message, char *hname);
 extern void setHTTPHeaderValue(HTTPMessage *message, char *hname, char *hvalue);
-extern void setHTTPHeaderNumberValue(HTTPMessage *message, char *hname, long number);
+extern void setHTTPHeaderNumberValue(HTTPMessage *message, char *hname, long long number);
 extern void setData(HTTPMessage *message, char *data, int len);
 extern char *headersToString(HTTPMessage *message);
 

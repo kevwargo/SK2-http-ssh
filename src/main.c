@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <pthread.h>
+#include <libssh2.h>
 #include "socket-helpers.h"
 #include "clientlist.h"
 #include "misc.h"
@@ -77,6 +78,7 @@ void cleanup()
     printf("cleaning up...\n");
     clearClientList(&ClientList);
     close(ServerSocket);
+    libssh2_exit();
     free(RootDir);
 }
 

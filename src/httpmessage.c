@@ -42,10 +42,10 @@ void setHTTPHeaderValue(HTTPMessage *message, char *hname, char *hvalue)
     message->headerCount++;
 }
 
-void setHTTPHeaderNumberValue(HTTPMessage *message, char *hname, long number)
+void setHTTPHeaderNumberValue(HTTPMessage *message, char *hname, long long number)
 {
     char *value = (char *)malloc(32);
-    sprintf(value, "%ld", number);
+    sprintf(value, "%lld", number);
     setHTTPHeaderValue(message, hname, value);
 }
 

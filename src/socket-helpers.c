@@ -60,10 +60,10 @@ void exitOnError(int errcode)
     exit(errcode);
 }
 
-int sendall(int socket, void *buffer, size_t length)
+long long sendall(int socket, void *buffer, size_t length)
 {
     char *ptr = (char *)buffer;
-    int total = 0;
+    long long total = 0;
     while (length > 0)
     {
         int chunksize = send(socket, ptr, length, 0);

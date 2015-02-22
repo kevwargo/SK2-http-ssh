@@ -15,7 +15,7 @@
 #include "httpresponse.h"
 
 /* ARGS: title, body */
-static char *HTMLTemplate = "<html>\n"
+char *HTMLTemplate = "<html>\n"
     "<head><title>%s</title></head>\n"
     "<body>\n"
     "%s\n"
@@ -23,7 +23,7 @@ static char *HTMLTemplate = "<html>\n"
     "</html>\n";
 
 /* ARGS: request text */
-static char *HTMLBadRequest = "<h1 align=\"center\">"
+char *HTMLBadRequest = "<h1 align=\"center\">"
     "Bad request was sent</h1>\n"
     "<hr/>\n"
     "<h3>Request:</h3>\n"
@@ -32,42 +32,42 @@ static char *HTMLBadRequest = "<h1 align=\"center\">"
     "</pre>\n";
 
 /* ARGS: resource, date */
-static char *HTMLNotFound = "<h1 align=\"center\">"
+char *HTMLNotFound = "<h1 align=\"center\">"
     "Requested resource %s not found</h1>\n"
     "<hr/>\n"
     "<h2 align=\"center\">Current GMT date: %s</h2>\n"
     "<hr/>\n";
 
 /* ARGS: reason */
-static char *HTMLForbidden = "<h1 align=\"center\">"
+char *HTMLForbidden = "<h1 align=\"center\">"
     "403 Forbidden</h1>\n"
-    "<h2>%s</h2>"
+    "<h2>%s</h2>\n"
     "<hr/>\n";
 
-static char *HTMLNotImplemented = "<h1 align=\"center\">"
+char *HTMLNotImplemented = "<h1 align=\"center\">"
     "Server error: method %s is not implemented on server</h1>\n"
     "<hr/>\n";
 
-static char *HTMLInternalServerError = "<h1 align=\"center\">"
-    "An internl server error occured:</h1>\n"
+char *HTMLInternalServerError = "<h1 align=\"center\">"
+    "An internal server error occured:</h1>\n"
     "<pre>%s</pre>\n"
     "<hr/>\n";
 
 /* ARGS: reason */
-static char *HTMLBadGateway = "<h1 align=\"center\">"
+char *HTMLBadGateway = "<h1 align=\"center\">"
     "Bad gateway<h1>\n"
     "<h2>%s</h2>\n"
     "</hr>\n";
 
 /* ARGS: directory, optional slash */
-static char *HTMLFileListHeader = "<h1>Index of %s%s</h1>\n"
+char *HTMLFileListHeader = "<h1>Index of %s%s</h1>\n"
     "<hr/>\n"
     "<pre>\n";
 
-static char *HTMLFileListTail = "</pre>\n<hr/>\n";
+char *HTMLFileListTail = "</pre>\n<hr/>\n";
 
 /* ARGS: filename, optional slash, filename representation, optional slash */
-static char *HTMLFileListEntryTemplate = "<a href=\"/local/%s%s\">%s%s</a>\n";
+char *HTMLFileListEntryTemplate = "<a href=\"%s%s\">%s%s</a>\n";
 
 void destroyResponse(HTTPResponse *response)
 {
@@ -114,7 +114,7 @@ char *encodeResponse(HTTPResponse *response, int *sizeptr)
     return string;
 }
 
-int sendHTTPGeneral(Client *client, int statusCode, char *reasonPhrase,
+long long sendHTTPGeneral(Client *client, int statusCode, char *reasonPhrase,
                     char *title, char *body)
 {
     HTTPResponse *response = buildDefaultResponse(statusCode, reasonPhrase);
@@ -130,77 +130,78 @@ int sendHTTPGeneral(Client *client, int statusCode, char *reasonPhrase,
     }
     int size;
     char *buffer = encodeResponse(response, &size);
-    int result = sendall(client->sockfd, buffer, size);
+    long long result = sendall(client->sockfd, buffer, size);
     destroyResponse(response);
     free(buffer);
     return result;
 }
 
-int sendHTTPBadRequest(Client *client, char *request)
+long long sendHTTPBadRequest(Client *client, char *request)
 {
     if (! request)
         request = "";
     char *body = (char *)malloc(strlen(HTMLBadRequest) + strlen(request));
     sprintf(body, HTMLBadRequest, request);
     char *title = "Bad request";
-    int result = sendHTTPGeneral(client, 400, title, title, body);
+    long long result = sendHTTPGeneral(client, 400, title, title, body);
     free(body);
     return result;
 }
 
-int sendHTTPNotFound(Client *client, char *resource)
+long long sendHTTPNotFound(Client *client, char *resource)
 {
     char *date = curdate();
     char *body = (char *)malloc(strlen(HTMLNotFound) +
                                 strlen(resource) + strlen(date));
     sprintf(body, HTMLNotFound, resource, date);
     char *title = "Not found";
-    int result = sendHTTPGeneral(client, 404, title, title, body);
+    long long result = sendHTTPGeneral(client, 404, title, title, body);
     free(body);
     return result;
 }
 
-int sendHTTPForbidden(Client *client, char *reason)
+long long sendHTTPForbidden(Client *client, char *reason)
 {
     if (! reason)
         reason = "";
     char *body = (char *)malloc(strlen(HTMLForbidden) + strlen(reason));
+    printf("reason %s\n", reason);
     sprintf(body, HTMLForbidden, reason);
     char *title = "Forbidden";
-    int result = sendHTTPGeneral(client, 403, title, title, HTMLForbidden);
+    long long result = sendHTTPGeneral(client, 403, title, title, HTMLForbidden);
     free(body);
     return result;
 }
 
-int sendHTTPNotImplemented(Client *client, char *method)
+long long sendHTTPNotImplemented(Client *client, char *method)
 {
     char *body = (char *)malloc(strlen(HTMLNotImplemented) +
                                 strlen(method));
     sprintf(body, HTMLNotImplemented, method);
     char *title = "Not implemented";
-    int result = sendHTTPGeneral(client, 501, title, title, body);
+    long long result = sendHTTPGeneral(client, 501, title, title, body);
     free(body);
     return result;
 }
 
-int sendHTTPInternalServerError(Client *client, char *message)
+long long sendHTTPInternalServerError(Client *client, char *message)
 {
     char *body = (char *)malloc(strlen(HTMLInternalServerError) +
                                 strlen(message));
     sprintf(body, HTMLInternalServerError, message);
     char *title = "Internal server error";
-    int result = sendHTTPGeneral(client, 500, title, title, body);
+    long long result = sendHTTPGeneral(client, 500, title, title, body);
     free(body);
     return result;
 }
 
-int sendHTTPBadGateway(Client *client, char *reason)
+long long sendHTTPBadGateway(Client *client, char *reason)
 {
     char *body = (char *)malloc(strlen(HTMLBadGateway) +
                                 strlen(reason));
     sprintf(body, HTMLBadGateway, reason);
     char *title = "Bad gateway";
-    int result = sendHTTPGeneral(client, 503, title, title, body);
+    long long result = sendHTTPGeneral(client, 503, title, title, body);
     free(body);
     return result;
 }
@@ -210,22 +211,23 @@ static char *allocHTMLFileListBuffer(char *dirname, char *subdir)
     int size = strlen(HTMLFileListHeader);
     size += strlen(HTMLFileListTail);
     size += strlen(subdir);
+    int tmpllen = strlen(HTMLFileListEntryTemplate);
     DIR *dirp = opendir(dirname);
     struct dirent *entry;
     while (entry = readdir(dirp))
     {
         if (strcmp(entry->d_name, ".") == 0)
             continue;
-        size += strlen(HTMLFileListEntryTemplate);
+        size += tmpllen;
         size += strlen(entry->d_name) * 2;
     }
     return (char *)malloc(size);
 }
 
 /* THE RETURN VALUE MUST BE FREED !!! */
-char *generateHTMLFileList(char *rootdir, char *subdir)
+char *generateHTMLLocalFileList(char *rootdir, char *subdir)
 {
-    char *dirname = joinpath(rootdir, subdir); // free
+    char *dirname = joinpath(rootdir, subdir, 1); // free
     char *htmlfilelist = allocHTMLFileListBuffer(dirname, subdir); // free
     struct dirent **entries; //free
     int count = scandir(dirname, &entries, NULL, alphasort);
@@ -258,9 +260,8 @@ char *generateHTMLFileList(char *rootdir, char *subdir)
     return html;
 }
 
-int sendHTTPFileList(Client *client, int withdata)
+long long sendHTTPFileList(Client *client, char *html, int withdata)
 {
-    char *html = generateHTMLFileList(client->rootdir, client->workingSubdir);
     int datalen = strlen(html);
     HTTPResponse *response = buildDefaultResponse(200, "OK");
     setHTTPHeaderValue(&response->message, "Content-Type", "text/html; charset=utf-8");
@@ -271,12 +272,19 @@ int sendHTTPFileList(Client *client, int withdata)
         setHTTPHeaderNumberValue(&response->message, "Content-Length", datalen);
     }
     char *buffer = encodeResponse(response, NULL);
-    int status = sendall(client->sockfd, buffer, strlen(buffer));
+    long long status = sendall(client->sockfd, buffer, strlen(buffer));
     destroyResponse(response);
     free(buffer);
-    free(html);
-    printf("sendhttpfilelist %d\n", status);
+    printf("sendhttpfilelist %lld\n", status);
     return status;
+}
+
+long long sendHTTPLocalFileList(Client *client, int withdata)
+{
+    char *html = generateHTMLLocalFileList(client->rootdir, client->workingSubdir);
+    long long result = sendHTTPFileList(client, html, withdata);
+    free(html);
+    return result;
 }
 
 static HTTPResponse *buildFileResponse(int fd, char *mimetype, int withdata, char *buffer, int bufsize)
@@ -300,9 +308,9 @@ static HTTPResponse *buildFileResponse(int fd, char *mimetype, int withdata, cha
     return response;
 }
 
-int sendHTTPFile(Client *client, char *filename, int withdata)
+long long sendHTTPFile(Client *client, char *filename, int withdata)
 {
-    int total;
+    long long total;
     int fd = open(filename, O_RDONLY);
     if (fd < 0)
         return -2;
@@ -315,7 +323,7 @@ int sendHTTPFile(Client *client, char *filename, int withdata)
         total = -3;
     else
     {
-        int bytes;
+        long long bytes;
         int responselen;
         char *responsebuf = encodeResponse(response, &responselen);
         bytes = sendall(client->sockfd, responsebuf, responselen);
@@ -330,7 +338,7 @@ int sendHTTPFile(Client *client, char *filename, int withdata)
             {
                 while ((bytes = read(fd, buffer, bufsize)) > 0)
                 {
-                    int sent = sendall(client->sockfd, buffer, bytes);
+                    long long sent = sendall(client->sockfd, buffer, bytes);
                     if (sent < bytes)
                     {
                         free(buffer);
