@@ -11,12 +11,12 @@ LDFLAGS=-s
 DEBUG_LDFLAGS=-g
 
 
-LIBS=-pthread
+LIBS=-pthread -lssh2
 
-_DEPS = clientlist.h httprequest.h httpresponse.h httpserver.h misc.h socket-helpers.h httpmessage.h
+_DEPS = clientlist.h httprequest.h httpresponse.h httpserver.h misc.h socket-helpers.h httpmessage.h ssh.h mime.h
 DEPS = $(patsubst %,$(INCDIR)/%,$(_DEPS))
 
-_OBJ = clientlist.o httpmessage.o httprequest.o httpresponse.o httpserver.o main.o misc.o socket-helpers.o
+_OBJ = clientlist.o httpmessage.o httprequest.o httpresponse.o httpserver.o main.o misc.o socket-helpers.o ssh.o mime.o
 OBJ = $(patsubst %,$(OBJDIR)/%,$(_OBJ))
 DEBUGOBJ = $(patsubst %,$(DEBUGDIR)/%,$(_OBJ))
 # OBJ=$(OBJDIR)/server.o $(OBJDIR)/address.o $(OBJDIR)/clientlist.o

@@ -15,6 +15,8 @@
 #include "clientlist.h"
 #include "misc.h"
 #include "httpserver.h"
+#include "ssh.h"
+#include "mime.h"
 
 
 #define QUEUE_SIZE 5
@@ -44,8 +46,6 @@ void *handleClient(void *arg)
                 strerror_r(errno, NULL, 0));
             break;
     }
-    shutdown(client->sockfd, SHUT_RDWR);
-    close(client->sockfd);
     removeClient(&ClientList, client->sockfd);
 }
 
@@ -75,13 +75,6 @@ int acceptClient(int servsock, Client **clptr, void *(*start_routine) (void *), 
 void cleanup()
 {
     printf("cleaning up...\n");
-    for (Client *client = ClientList; client; client = client->next)
-    {
-        shutdown(client->sockfd, SHUT_RDWR);
-        close(client->sockfd);
-        pthread_join(client->thread, NULL);
-        logmsg(client, stdout, "Thread terminated\n");
-    }
     clearClientList(&ClientList);
     close(ServerSocket);
     free(RootDir);
@@ -96,6 +89,8 @@ void signalHandler(int signum)
 
 int main(int argc, char **argv)
 {
+    if (strstr(argv[0], "ssh-test"))
+        return ssh_test(argc, argv);
     if (argc < 4)
     {
         fprintf(stderr, "usage: %s HOST PORT ROOT-DIR\n", argv[0]);

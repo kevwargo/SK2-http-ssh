@@ -6,6 +6,8 @@
 #include <ctype.h>
 #include "socket-helpers.h"
 #include "httprequest.h"
+#include "httpresponse.h"
+#include "misc.h"
 
 char *MethodKW[] = {
         "GET ", (char *)HTTP_GET_METHOD,
@@ -37,14 +39,48 @@ void destroyRequest(HTTPRequest *request)
     free(request);
 }
 
-char *getHTTPRequest(int sockfd)
+char *getHTTPRequest(Client *client, char **datastart, int *payloadReceived)
 {
     int bufsize = 1024;
     char *buffer = (char *)malloc(bufsize);
-    int got = recvUpToPattern(sockfd, &buffer, &bufsize, NULL, 2, "\r\n\r\n", "\n\n");
+    int got = recvUpToPattern(client->sockfd, &buffer, &bufsize, datastart,
+                              2, "\r\n\r\n", "\n\n");
     if (got <= 0)
+    {
+        free(buffer);
         return NULL;
+    }
+    *payloadReceived = got - (*datastart - buffer);
     return buffer;
+}
+
+int checkForPayload(Client *client, char *buffer, int received, HTTPRequest *request)
+{
+    char *contentLengthString;
+    if (contentLengthString = getHTTPHeaderValue(&request->message, "content-length"))
+    {
+        char *endptr;
+        long length = strtol(contentLengthString, &endptr, 10);
+        if (*endptr != '\0')
+            return -1;
+        logmsg(client, stdout, "received first %d bytes of payload :)\n", received);
+        int remaining = length - received;
+        if ((received = recvall(client->sockfd, buffer + received, remaining))
+            < remaining)
+        {
+            logmsg(client, stdout,
+                   "ERROR: didn't receive all expected data (%d instead of %d)\n",
+                   received, remaining);
+            shutdown(client->sockfd, SHUT_RDWR);
+            return -2;
+        }
+        request->message.datalen = length;
+        setData(&request->message, buffer, length);
+        logmsg(client, stdout, "received all %d bytes of payload\n", length);
+        return length;
+    }
+    else
+        return 0;
 }
 
 HTTPRequest *parseHTTPRequest(char *buffer)
@@ -227,6 +263,7 @@ static int parseHeaderLine(char *request, HTTPHeaderField *hfield, char **endptr
     char *eol = findEOL(request, &isdouble);
     if (! eol)
     {
+        printf("the very beginning\n");
         return -1;
     }
     if (eol == request)
@@ -240,7 +277,7 @@ static int parseHeaderLine(char *request, HTTPHeaderField *hfield, char **endptr
     char *delim = strchr(request, ':');
     if (delim == request)
     {
-        printf("no value\n");
+        printf("no name\n");
         return -1;
     }
     for (char *namechar = request; namechar < delim; namechar++)

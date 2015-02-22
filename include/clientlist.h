@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <netinet/in.h>
+#include <libssh2.h>
 
 typedef struct Client
 {
@@ -11,6 +12,7 @@ typedef struct Client
     struct sockaddr_in address;
     char *rootdir;
     char *workingSubdir;
+    LIBSSH2_SESSION *ssh_session;
     struct Client *next;
 } Client;
 

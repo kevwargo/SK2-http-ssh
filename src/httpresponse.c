@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include "socket-helpers.h"
 #include "misc.h"
+#include "mime.h"
 #include "clientlist.h"
 #include "httpresponse.h"
 
@@ -37,8 +38,10 @@ static char *HTMLNotFound = "<h1 align=\"center\">"
     "<h2 align=\"center\">Current GMT date: %s</h2>\n"
     "<hr/>\n";
 
+/* ARGS: reason */
 static char *HTMLForbidden = "<h1 align=\"center\">"
     "403 Forbidden</h1>\n"
+    "<h2>%s</h2>"
     "<hr/>\n";
 
 static char *HTMLNotImplemented = "<h1 align=\"center\">"
@@ -50,6 +53,12 @@ static char *HTMLInternalServerError = "<h1 align=\"center\">"
     "<pre>%s</pre>\n"
     "<hr/>\n";
 
+/* ARGS: reason */
+static char *HTMLBadGateway = "<h1 align=\"center\">"
+    "Bad gateway<h1>\n"
+    "<h2>%s</h2>\n"
+    "</hr>\n";
+
 /* ARGS: directory, optional slash */
 static char *HTMLFileListHeader = "<h1>Index of %s%s</h1>\n"
     "<hr/>\n"
@@ -58,7 +67,7 @@ static char *HTMLFileListHeader = "<h1>Index of %s%s</h1>\n"
 static char *HTMLFileListTail = "</pre>\n<hr/>\n";
 
 /* ARGS: filename, optional slash, filename representation, optional slash */
-static char *HTMLFileListEntryTemplate = "<a href=\"%s%s\">%s%s</a>\n";
+static char *HTMLFileListEntryTemplate = "<a href=\"/local/%s%s\">%s%s</a>\n";
 
 void destroyResponse(HTTPResponse *response)
 {
@@ -119,9 +128,9 @@ int sendHTTPGeneral(Client *client, int statusCode, char *reasonPhrase,
         setHTTPHeaderValue(&response->message, "Content-Type", "text/html; charset=utf-8");
         setHTTPHeaderNumberValue(&response->message, "Content-Length", size);
     }
-    char *buffer = encodeResponse(response, NULL);
-    int result = sendall(client->sockfd, buffer, strlen(buffer));
-    printf("sendhttpgeneral %d\n", result);
+    int size;
+    char *buffer = encodeResponse(response, &size);
+    int result = sendall(client->sockfd, buffer, size);
     destroyResponse(response);
     free(buffer);
     return result;
@@ -151,10 +160,16 @@ int sendHTTPNotFound(Client *client, char *resource)
     return result;
 }
 
-int sendHTTPForbidden(Client *client)
+int sendHTTPForbidden(Client *client, char *reason)
 {
+    if (! reason)
+        reason = "";
+    char *body = (char *)malloc(strlen(HTMLForbidden) + strlen(reason));
+    sprintf(body, HTMLForbidden, reason);
     char *title = "Forbidden";
-    return sendHTTPGeneral(client, 403, title, title, HTMLForbidden);
+    int result = sendHTTPGeneral(client, 403, title, title, HTMLForbidden);
+    free(body);
+    return result;
 }
 
 int sendHTTPNotImplemented(Client *client, char *method)
@@ -175,6 +190,17 @@ int sendHTTPInternalServerError(Client *client, char *message)
     sprintf(body, HTMLInternalServerError, message);
     char *title = "Internal server error";
     int result = sendHTTPGeneral(client, 500, title, title, body);
+    free(body);
+    return result;
+}
+
+int sendHTTPBadGateway(Client *client, char *reason)
+{
+    char *body = (char *)malloc(strlen(HTMLBadGateway) +
+                                strlen(reason));
+    sprintf(body, HTMLBadGateway, reason);
+    char *title = "Bad gateway";
+    int result = sendHTTPGeneral(client, 503, title, title, body);
     free(body);
     return result;
 }
@@ -232,15 +258,18 @@ char *generateHTMLFileList(char *rootdir, char *subdir)
     return html;
 }
 
-int sendHTTPFileList(Client *client)
+int sendHTTPFileList(Client *client, int withdata)
 {
     char *html = generateHTMLFileList(client->rootdir, client->workingSubdir);
     int datalen = strlen(html);
     HTTPResponse *response = buildDefaultResponse(200, "OK");
-    response->message.datalen = datalen;
-    setData(&response->message, html, datalen);
     setHTTPHeaderValue(&response->message, "Content-Type", "text/html; charset=utf-8");
-    setHTTPHeaderNumberValue(&response->message, "Content-Length", datalen);
+    if (withdata)
+    {
+        response->message.datalen = datalen;
+        setData(&response->message, html, datalen);
+        setHTTPHeaderNumberValue(&response->message, "Content-Length", datalen);
+    }
     char *buffer = encodeResponse(response, NULL);
     int status = sendall(client->sockfd, buffer, strlen(buffer));
     destroyResponse(response);
@@ -250,16 +279,15 @@ int sendHTTPFileList(Client *client)
     return status;
 }
 
-static HTTPResponse *buildFileResponse(int fd, int withdata, char *buffer, int bufsize)
+static HTTPResponse *buildFileResponse(int fd, char *mimetype, int withdata, char *buffer, int bufsize)
 {
     long filesize = lseek(fd, 0, SEEK_END);
     lseek(fd, 0, SEEK_SET);
     HTTPResponse *response = buildDefaultResponse(200, "OK");
-    setHTTPHeaderNumberValue(&response->message, "Content-length", filesize);
-    setHTTPHeaderValue(&response->message, "Content-type",
-                       "application/octet-stream");
+    setHTTPHeaderValue(&response->message, "Content-type", mimetype);
     if (withdata)
     {
+        setHTTPHeaderNumberValue(&response->message, "Content-length", filesize);
         int bytes = read(fd, buffer, bufsize);
         if (bytes < 0)
         {
@@ -280,7 +308,9 @@ int sendHTTPFile(Client *client, char *filename, int withdata)
         return -2;
     int bufsize = 262144;
     char *buffer = (char *)malloc(bufsize);
-    HTTPResponse *response = buildFileResponse(fd, withdata, buffer, bufsize);
+    char *mimetype = getMimeType(filename);
+    HTTPResponse *response = buildFileResponse(fd, mimetype, withdata, buffer, bufsize);
+    free(mimetype);
     if (! response)
         total = -3;
     else

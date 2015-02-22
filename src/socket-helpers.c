@@ -81,14 +81,14 @@ int sendall(int socket, void *buffer, size_t length)
 }
 
 int recvUpToPattern(int sockfd, char **bufptr, int *bufsizeptr, char **endptr,
-                    int ptrncnt, ...)
+                    int patternCount, ...)
 {
     char *found = NULL;
     int total = 0;
     char *end;
     if (! endptr)
         endptr = &end;
-    if (! bufsizeptr || ! bufptr)
+    if (! bufsizeptr || ! bufptr || patternCount == 0)
     {
         errno = EINVAL;
         return -1;
@@ -118,23 +118,23 @@ int recvUpToPattern(int sockfd, char **bufptr, int *bufsizeptr, char **endptr,
             errno = 0;
             return 0;
         }
-        (*bufptr)[total + chunksize] = '\0';
-        va_start(patterns, ptrncnt);
-        for (int i = 0; i < ptrncnt; i++)
+        /* (*bufptr)[total + chunksize] = '\0'; */
+        va_start(patterns, patternCount);
+        total += chunksize;
+        for (int i = 0; i < patternCount; i++)
         {
             char *pattern = va_arg(patterns, char *);
             int ptrnlen = strlen(pattern);
-            int offset = total - ptrnlen;
+            int offset = total - ptrnlen - chunksize;
             if (offset < 0)
                 offset = 0;
-            found = strstr(*bufptr + offset, pattern);
+            found = memmem(*bufptr + offset, total - offset, pattern, ptrnlen);
             if (found)
             {
-                *endptr = found;
+                *endptr = found + ptrnlen;
                 break;
             }
         }
-        total += chunksize;
     } while (! found);
     va_end(patterns);
     return total;

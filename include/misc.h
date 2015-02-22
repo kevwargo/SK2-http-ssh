@@ -8,5 +8,6 @@
 extern void logmsg(Client *client, FILE *stream, char *fmt, ...);
 extern char *curdate();
 extern char *joinpath(char *dir, char *base);
+extern char *decodeURL(char *url);
 
 #endif

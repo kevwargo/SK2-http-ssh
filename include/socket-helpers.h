@@ -19,7 +19,7 @@ extern int printAddressError(int errcode);
 extern void exitOnError(int errcode);
 extern int sendall(int socket, void *buffer, size_t length);
 extern int recvUpToPattern(int sockfd, char **bufptr, int *bufsizeptr,
-                           char **endptr, int ptrncnt, ...);
+                           char **endptr, int patternCount, ...);
 extern int recvall(int socket, char *buffer, int length);
 
 

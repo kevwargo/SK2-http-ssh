@@ -2,6 +2,7 @@
 #define __HTTPREQUEST_H_INCLUDED_
 
 #include "httpmessage.h"
+#include "clientlist.h"
 
 typedef enum {
     HTTP_GET_METHOD,
@@ -23,9 +24,11 @@ typedef struct {
 
 extern char *MethodKW[];
 
-extern char *getHTTPRequest(int sockfd);
+extern char *getHTTPRequest(Client *client, char **datastart, int *payloadReceived);
 extern HTTPRequest *parseHTTPRequest(char *buffer);
 extern void destroyRequest(HTTPRequest *request);
 extern char *methodString(int method);
+extern int checkForPayload(Client *client, char *buffer, int received,
+                           HTTPRequest *request);
 
 #endif
