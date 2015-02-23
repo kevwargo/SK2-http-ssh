@@ -16,7 +16,7 @@ Client *addClient(Client **clptr, int sockfd)
     if (! ClientListMutex)
     {
         ClientListMutex = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t));
-        pthread_mutex_init(ClientListMutex, NULL);
+        (void)pthread_mutex_init(ClientListMutex, NULL);
     }
     if (! clptr)
         return NULL;

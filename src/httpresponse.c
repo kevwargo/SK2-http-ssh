@@ -14,6 +14,9 @@
 #include "clientlist.h"
 #include "httpresponse.h"
 
+
+/* Templates for HTML pages dynamic building */
+
 /* ARGS: title, body */
 char *HTMLTemplate = "<html>\n"
     "<head><title>%s</title></head>\n"
@@ -95,6 +98,7 @@ HTTPResponse *buildDefaultResponse(int statusCode, char *reasonPhrase)
     return response;
 }
 
+/* Convert HTTP-response data structure into byte-stream for sending over the network */
 char *encodeResponse(HTTPResponse *response, int *sizeptr)
 {
     char *headers = headersToString(&response->message);
@@ -114,6 +118,7 @@ char *encodeResponse(HTTPResponse *response, int *sizeptr)
     return string;
 }
 
+/* Template from sending some information to client (usually some errors) */
 long long sendHTTPGeneral(Client *client, int statusCode, char *reasonPhrase,
                     char *title, char *body)
 {
@@ -164,11 +169,11 @@ long long sendHTTPForbidden(Client *client, char *reason)
 {
     if (! reason)
         reason = "";
-    char *body = (char *)malloc(strlen(HTMLForbidden) + strlen(reason));
+    char *body = (char *)malloc(strlen(HTMLForbidden) + strlen(reason) + 10);
     printf("reason %s\n", reason);
     sprintf(body, HTMLForbidden, reason);
     char *title = "Forbidden";
-    long long result = sendHTTPGeneral(client, 403, title, title, HTMLForbidden);
+    long long result = sendHTTPGeneral(client, 403, title, title, body);
     free(body);
     return result;
 }
@@ -206,6 +211,7 @@ long long sendHTTPBadGateway(Client *client, char *reason)
     return result;
 }
 
+/* Allocating memory for HTML containing file list */
 static char *allocHTMLFileListBuffer(char *dirname, char *subdir)
 {
     int size = strlen(HTMLFileListHeader);
@@ -224,6 +230,7 @@ static char *allocHTMLFileListBuffer(char *dirname, char *subdir)
     return (char *)malloc(size);
 }
 
+/* Generate HTML file list for a local directory */
 /* THE RETURN VALUE MUST BE FREED !!! */
 char *generateHTMLLocalFileList(char *rootdir, char *subdir)
 {
@@ -287,6 +294,7 @@ long long sendHTTPLocalFileList(Client *client, int withdata)
     return result;
 }
 
+/* Build a response for sending a file */
 static HTTPResponse *buildFileResponse(int fd, char *mimetype, int withdata, char *buffer, int bufsize)
 {
     long filesize = lseek(fd, 0, SEEK_END);

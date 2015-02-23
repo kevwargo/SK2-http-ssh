@@ -1,0 +1,48 @@
+1. Treść zadania:
+   Zadanie polegało na zaimplementowaniu serwera HTTP, który w dodatek będzie mógł się łączyć z serwerem ssh i umożliwiać odczyt z niego plików;
+
+2. Protokół jest częściową implementacją standardu HTTP/1.1, opisanym w dokumentach RFC7230-7234. Opis protokołu:
+   while (1)
+   {
+       request = waitForRequest();
+       parseRequest();
+       if (requestMethod == GET or HEAD)
+       {
+            if (localResourceRequested)
+               if (request directory)
+                  sendFileList or only headers if method is HEAD;
+               else
+                  sendFile or only headers if method is HEAD;
+            else
+                if (sshConnected)
+                   sendRequestedReqsource;
+                else
+                    sendErrorMessage;
+       }
+       else if (requsetMethod == POST)
+            parse host, username and password from form attributes;
+            if (one of them is absent)
+               sendErrorMessage;
+            else
+            {
+                establish ssh connection;
+                if (there are any errors)
+                    sendErrorMessage;
+            }
+   }
+
+3. Pliki źródłowe:
+   clientlist.c             - kod, obsługujący strukturę danych klientów (lista jednokierunkowa)
+   httpmessage.c            - ogólne parsowanie i zarządzanie wiadomościami formatu HTTP
+   httprequest.c            - funkcje dla pobrania i parsowania zapytań
+   httpresponse.c           - funkcje dla zadowolenia zapytań poprzez odesłanie odpowiedzi
+   httpserver.c             - kod, zarządzający odbiorem zapytań i wysłaniem odpowiedzi
+   main.c                   - kod inicjujący oraz zakończający działanie programu
+   mime.c                   - funkcja-wrapper dla określenia typu pliku lokalnego
+   socket-helpers.c         - funkcje pomocnicze dla obsługiwania socketów
+   misc.c                   - inne funkcje pomocnicze
+   ssh.c                    - kod dla obsługi połączeń ssh
+
+4. Uruchamianie: ./server adres_ip numer_portu folder_z_plikami_html
+   Kompilacja: make
+   Wymaganie: libssh2, libpthread

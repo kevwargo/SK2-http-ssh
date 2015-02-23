@@ -91,8 +91,6 @@ void signalHandler(int signum)
 
 int main(int argc, char **argv)
 {
-    if (strstr(argv[0], "ssh-test"))
-        return ssh_test(argc, argv);
     if (argc < 4)
     {
         fprintf(stderr, "usage: %s HOST PORT ROOT-DIR\n", argv[0]);

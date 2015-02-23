@@ -25,6 +25,7 @@ static char *parseHTTPTargetResource(char *request, char **endptr);
 static int parseHeaderLine(char *request, HTTPHeaderField *hfield, char **endptr);
 static int parseHTTPVersion(char *request, int *major, int *minor, char **endptr);
 
+/* String representation for request method */
 char *methodString(int method)
 {
     for (int i = 0; i < 8; i++)
@@ -39,6 +40,8 @@ void destroyRequest(HTTPRequest *request)
     free(request);
 }
 
+/* Receiving an HTTP-request from the socket. It only receives the header fields,
+   payload is not included */
 char *getHTTPRequest(Client *client, char **datastart, int *payloadReceived)
 {
     int bufsize = 1024;
@@ -54,6 +57,7 @@ char *getHTTPRequest(Client *client, char **datastart, int *payloadReceived)
     return buffer;
 }
 
+/* Check if there is a payload coming */
 int checkForPayload(Client *client, char *buffer, int received, HTTPRequest *request)
 {
     char *contentLengthString;
@@ -83,6 +87,7 @@ int checkForPayload(Client *client, char *buffer, int received, HTTPRequest *req
         return 0;
 }
 
+/* Parse byte-stream containing HTTP-request  */
 HTTPRequest *parseHTTPRequest(char *buffer)
 {
     char *request = buffer;
@@ -252,8 +257,8 @@ static char *findEOL(char *string, int *isdouble)
     }
     return eol;
 }
-
-/* 1) positive int - length of the parsed string
+/* Return value
+   1) positive int - length of the parsed string
    2) 0 - end of headers
    3) negative int - an error occured
  */
